@@ -65,6 +65,43 @@ but you'll have to implement those three above instructions first!
 * Read this whole file.
 * Skim the spec.
 
+### calls.ls8
+[ ] Completed
+- 
+
+### interrupts.ls8
+[ ] Completed
+- 
+
+### keyboard.ls8
+[ ] Completed
+- 
+
+### mult.ls8
+[ ] Completed
+- 
+
+### print8.ls8
+[ ] Completed
+- Prints the number 8. Calls LDI and tells it to use register 0 to store the decimal value 8. Then calls PRN to print the value of R0: 8
+
+### printstr.ls8
+[ ] Completed
+- 
+
+### sctest.ls8
+[ ] Completed
+- 
+
+### stack.ls8
+[ ] Completed
+- 
+
+### stackoverflow.ls8
+[ ] Completed
+- 
+
+
 ## Step 1: Add the constructor to `cpu.py`
 
 Add list properties to the `CPU` class to hold 256 bytes of memory and 8

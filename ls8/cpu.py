@@ -2,12 +2,17 @@
 
 import sys
 
+# * CPU Instructions
+HLT = 0b00000001
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.register = [0] * 8      # * 8 bytes of registers
+        self.ram = [00000000] * 256  # * 256 bytes of memory
+        self.pc = 0                  # * Program Counter: Index in the memory array of currently executing instruction
 
     def load(self):
         """Load a program into memory."""
@@ -31,6 +36,25 @@ class CPU:
             address += 1
 
 
+    # * Memory Methods (read/write)
+        # * MAR (Memory Address Register)
+            # * Address being read or written to
+            
+        # * MDR (Memory Data Register)
+            # * Data being read or written
+            
+    def ram_read(self, MAR):
+        # * Returns the value stored at requested memory address
+        MDR = self.ram[MAR]
+        
+        return MDR
+
+    def ram_write(self, MAR, MDR):
+        self.ram[MAR] = MDR
+
+
+    # * Arithmetic Logic Unit
+    
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
@@ -62,4 +86,16 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        
+        self.pc = 0
+        
+        running = True
+        
+        while running:
+            
+            IR = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+            
+            if IR == HLT:
+                running = False
