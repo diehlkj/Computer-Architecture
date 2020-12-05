@@ -4,15 +4,17 @@ import sys
 
 # * CPU Instructions
 HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
 
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        self.register = [0] * 8      # * 8 bytes of registers
-        self.ram = [00000000] * 256  # * 256 bytes of memory
-        self.pc = 0                  # * Program Counter: Index in the memory array of currently executing instruction
+        self.register = [0] * 8     # * 8 bytes of registers
+        self.ram = [0] * 256        # * 256 bytes of memory
+        self.pc = 0                 # * Program Counter: Index in the memory array of currently executing instruction
 
     def load(self):
         """Load a program into memory."""
@@ -86,7 +88,12 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        
+        # ? Spec Refrences:
+            # ? Instruction Layout:     Line 152
+            # ? LDI:                    Line 444
+            # ? PRN:                    Line 559
+            # ?
+
         self.pc = 0
         
         running = True
@@ -97,5 +104,17 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
             
-            if IR == HLT:
+            if IR == LDI:
+                # ? Takes 2 args: first is register, second is value
+                self.register[operand_a] = operand_b
+                self.pc += 2
+                
+            if IR == PRN:
+                print_value = self.register[operand_a]
+                print(print_value)
+                self.pc += 1
+                
+            elif IR == HLT:
                 running = False
+            
+            self.pc += 1 
