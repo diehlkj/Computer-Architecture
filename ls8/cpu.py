@@ -3,9 +3,9 @@
 import sys
 
 # * CPU Instructions
-HLT = 0b00000001
-LDI = 0b10000010
-PRN = 0b01000111
+HLT = 0b00000001    # * Stop Code
+LDI = 0b10000010    # * 2 Args: [Register Index | Value to Store] -- Stores a Value in Specified Register Index 
+PRN = 0b01000111    # * 1 Arg: [Register Index] -- Prints a Value From Register
 
 class CPU:
     """Main CPU class."""
@@ -21,21 +21,20 @@ class CPU:
 
         address = 0
 
-        # For now, we've just hardcoded a program:
+        program = "examples/print8.ls8"
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        for line in open(program, "r"):
+            if not line.startswith("#") and line.strip():
+                
+                instruction = line.strip().split(" ")
+                
+                # ! print(f"Instruction: {instruction[0]} | At Address: {address}")
+                
+                # * the '2' in int() tells it to be base 2. This keeps leading 0s
+                self.ram[address] = int(instruction[0], 2)
+                
+                # ! print(f"Memorey at address {address} is {self.ram[address]} and is type: {type(self.ram[address])} \n")
+                address += 1
 
 
     # * Memory Methods (read/write)
@@ -105,6 +104,7 @@ class CPU:
             operand_b = self.ram_read(self.pc + 2)
             
             if IR == LDI:
+                print("Ran LDI")
                 # ? Takes 2 args: first is register, second is value
                 self.register[operand_a] = operand_b
                 self.pc += 2
