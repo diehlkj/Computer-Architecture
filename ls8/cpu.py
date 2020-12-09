@@ -24,9 +24,9 @@ DIV = 0b10100011
 MOD = 0b10100100
 
 # * Stack Operations --------------------------------
-# * -V- 
+# * -V- 1 Arg: [Register Index] -- Pushes value stored at Arg into memory at location of Stack Pointer
 PUSH = 0b01000101
-# * -V- 
+# * -V- 1 Arg: [Register Index] -- Copys value at stack pointer to Arg
 POP = 0b01000110
 
 
@@ -100,23 +100,6 @@ class CPU:
 
         else:
             raise Exception("Unsupported ALU operation")
-
-    # def stack(self, op, ):
-    #     # ? Push
-    #     # ? If stack pointer at start:
-    #     # ? place value in memory at location of stack pointer
-    #     # ? Else:
-    #     # ? decrement stack pointer and place value in memory at location of stack pointer
-    #     # ? Pop
-    #     # ? If stack pointer at start:
-    #     # ? copy value in memory at location of stack pointer
-    #     # ? Else:
-    #     # ? copy value at pointer and increment stack pointer
-    #     # ? Ram for memory
-    #     # ? Pointer to track top of stack
-    #     # ? var that is a memory address
-    #     # * R7 is reserved for stack pointer
-    #     # * Memory address 0xf3 is reserved for start of stack, stack moves down in memory
 
     def trace(self):
         """
@@ -202,23 +185,25 @@ class CPU:
                 self.alu("MOD", operand_a, operand_b)
 
                 self.pc += 2
-        
+
         # * Stack Instructions --------------------------------
             elif IR == PUSH:
                 # ! print("Ran PUSH")
                 # ? Takes 1 args: register address of value to push
-                
-                self.register[7] -= 1 # * Move SP down
-                self.ram[self.register[7]] = self.register[operand_a] # * Puts value of Rn to memory location of SP
+
+                self.register[7] -= 1  # * Move SP down
+                # * Puts value of Rn to memory location of SP
+                self.ram[self.register[7]] = self.register[operand_a]
 
                 self.pc += 1
-                
+
             elif IR == POP:
                 # ! print("Ran POP")
                 # ? Takes 1 args: register address to copy popped value to
-                
-                self.register[operand_a] = self.ram[self.register[7]] # * Puts value of Rn to memory location of SP
-                self.register[7] += 1 # * Move SP up
+
+                # * Puts value of Rn to memory location of SP
+                self.register[operand_a] = self.ram[self.register[7]]
+                self.register[7] += 1  # * Move SP up
 
                 self.pc += 1
 
