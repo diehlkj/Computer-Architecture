@@ -2,23 +2,32 @@
 
 import sys
 
-# * CPU Instructions
+# * -V- CPU Instructions --------------------------------
 HLT = 0b00000001    # * Stop Code
-# * 2 Args: [Register Index | Value to Store] -- Stores a Value in Specified Register Index
-LDI = 0b10000010
-PRN = 0b01000111    # * 1 Arg: [Register Index] -- Prints a Value From Register
 
-# * Math Operations
-# * 2 Args: [reg_a | reg_b] -- Triggers the ALU to add and return the result
+# * -V- 2 Args: [Register Index | Value to Store] -- Stores a Value in Specified Register Index
+LDI = 0b10000010
+
+# * -V- 1 Arg: [Register Index] -- Prints a Value From Register
+PRN = 0b01000111
+
+# * Arithmatic Operations --------------------------------
+# * -V- 2 Args: [reg_a | reg_b] -- Triggers the ALU to add and return the result
 ADD = 0b10100000
-# * 2 Args: [reg_a | reg_b] -- Triggers the ALU to subtract and return the result
+# * -V- 2 Args: [reg_a | reg_b] -- Triggers the ALU to subtract and return the result
 SUB = 0b10100001
-# * 2 Args: [reg_a | reg_b] -- Triggers the ALU to multiply and return the result
+# * -V- 2 Args: [reg_a | reg_b] -- Triggers the ALU to multiply and return the result
 MUL = 0b10100010
-# * 2 Args: [reg_a | reg_b] -- Triggers the ALU to divide and return the result
+# * -V- 2 Args: [reg_a | reg_b] -- Triggers the ALU to divide and return the result
 DIV = 0b10100011
-# * 2 Args: [reg_a | reg_b] -- Triggers the ALU to mod and return the result
+# * -V- 2 Args: [reg_a | reg_b] -- Triggers the ALU to mod and return the result
 MOD = 0b10100100
+
+# * Stack Operations --------------------------------
+# * -V- 
+PUSH = 0b01000101
+# * -V- 
+POP = 0b01000110
 
 
 class CPU:
@@ -36,7 +45,7 @@ class CPU:
 
         address = 0
 
-        program = "mult.ls8"
+        program = "stack.ls8"
 
         for line in open(f"examples/{program}", "r"):
             if not line.startswith("#") and line.strip():
@@ -92,6 +101,23 @@ class CPU:
         else:
             raise Exception("Unsupported ALU operation")
 
+    # def stack(self, op, ):
+    #     # ? Push
+    #     # ? If stack pointer at start:
+    #     # ? place value in memory at location of stack pointer
+    #     # ? Else:
+    #     # ? decrement stack pointer and place value in memory at location of stack pointer
+    #     # ? Pop
+    #     # ? If stack pointer at start:
+    #     # ? copy value in memory at location of stack pointer
+    #     # ? Else:
+    #     # ? copy value at pointer and increment stack pointer
+    #     # ? Ram for memory
+    #     # ? Pointer to track top of stack
+    #     # ? var that is a memory address
+    #     # * R7 is reserved for stack pointer
+    #     # * Memory address 0xf3 is reserved for start of stack, stack moves down in memory
+
     def trace(self):
         """
         Handy function to print out the CPU state. You might want to call this
@@ -120,9 +146,9 @@ class CPU:
         # ? PRN:                    Line 559
         # ?
 
-        self.pc = 0
-
-        running = True
+        self.pc = 0                 # * Start program counter at 0
+        self.register[7] = 0xf3     # * Set stack pointer to starting address
+        running = True              # * Start running the CPU
 
         while running:
 
@@ -176,6 +202,25 @@ class CPU:
                 self.alu("MOD", operand_a, operand_b)
 
                 self.pc += 2
+        
+        # * Stack Instructions --------------------------------
+            elif IR == PUSH:
+                # ! print("Ran PUSH")
+                # ? Takes 1 args: register address of value to push
+                
+                self.register[7] -= 1 # * Move SP down
+                self.ram[self.register[7]] = self.register[operand_a] # * Puts value of Rn to memory location of SP
+
+                self.pc += 1
+                
+            elif IR == POP:
+                # ! print("Ran POP")
+                # ? Takes 1 args: register address to copy popped value to
+                
+                self.register[operand_a] = self.ram[self.register[7]] # * Puts value of Rn to memory location of SP
+                self.register[7] += 1 # * Move SP up
+
+                self.pc += 1
 
         # * Halt the CPU --------------------------------
             elif IR == HLT:
