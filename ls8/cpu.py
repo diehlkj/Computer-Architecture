@@ -29,6 +29,11 @@ PUSH = 0b01000101
 # * -V- 1 Arg: [Register Index] -- Copys value at stack pointer to Arg
 POP = 0b01000110
 
+# * Call/Return Operations --------------------------------
+# * -V- 1 Arg: [Register Index] -- Pushes value stored at Arg into memory at location of Stack Pointer
+CALL = 0b01010000
+# * -V- 0 Args
+RET = 0b00010001
 
 class CPU:
     """Main CPU class."""
@@ -45,7 +50,7 @@ class CPU:
 
         address = 0
 
-        program = "stack.ls8"
+        program = "call.ls8"
 
         for line in open(f"examples/{program}", "r"):
             if not line.startswith("#") and line.strip():
@@ -127,7 +132,8 @@ class CPU:
         # ? Instruction Layout:     Line 152
         # ? LDI:                    Line 444
         # ? PRN:                    Line 559
-        # ?
+        # ? CALL:                   Line 211
+        # ? RET:                    Line 590
 
         self.pc = 0                 # * Start program counter at 0
         self.register[7] = 0xf3     # * Set stack pointer to starting address
@@ -140,7 +146,7 @@ class CPU:
             operand_b = self.ram_read(self.pc + 2)
 
             if IR == LDI:
-                # ! print("Ran LDI")
+                # ! print(f"Ran LDI: {operand_b} assigned to {operand_a}")
                 # ? Takes 2 args: first is register, second is value
                 self.register[operand_a] = operand_b
                 self.pc += 2
@@ -206,6 +212,23 @@ class CPU:
                 self.register[7] += 1  # * Move SP up
 
                 self.pc += 1
+                
+            elif IR == CALL:
+                # ! print(f"Ran CALL | PC: {self.pc} | + 2 {self.pc + 2}")
+                self.register[7] -= 1
+                self.ram[self.register[7]] = self.pc + 2
+                
+                # ? Set pc to location of function
+                self.pc = self.register[operand_a]
+                
+                self.pc -= 1 # * pc - 1 to offset the difference from outside if-tree pc inc
+                
+                
+            elif IR == RET:
+                # ! print("Ran RET")
+                # ? pops the program counter position from the stack and returns the pc to it
+                self.pc = self.ram[self.register[7]]
+                self.register[7] += 1  # * Move SP up
 
         # * Halt the CPU --------------------------------
             elif IR == HLT:
