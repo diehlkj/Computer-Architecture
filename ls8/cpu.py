@@ -41,6 +41,7 @@ JMP = 0b01010100
 JEQ = 0b01010101
 JNE = 0b01010110
 
+
 class CPU:
     """Main CPU class."""
 
@@ -50,7 +51,27 @@ class CPU:
         self.ram = [0] * 256        # * 256 bytes of memory
         # * Program Counter: Index in the memory array of currently executing instruction
         self.pc = 0
+        # * Flags 0b00000LGE
         self.fl = 0b00000000
+        self.running = False
+        self.irbt = {
+            HLT: self.handle_HLT,
+            LDI: self.handle_LDI,
+            PRN: self.handle_PRN,
+            ADD: self.handle_ADD,
+            SUB: self.handle_SUB,
+            MUL: self.handle_MUL,
+            DIV: self.handle_DIV,
+            MOD: self.handle_MOD,
+            PUSH: self.handle_PUSH,
+            POP: self.handle_POP,
+            CALL: self.handle_CALL,
+            RET: self.handle_RET,
+            CMP: self.handle_CMP,
+            JMP: self.handle_JMP,
+            JEQ: self.handle_JEQ,
+            JNE: self.handle_JNE,
+        }
 
     def load(self):
         """Load a program into memory."""
@@ -88,7 +109,98 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
-    # * Arithmetic Logic Unit
+    def handle_LDI(self, operand_a, operand_b):
+        # ! print(f"Ran LDI: {operand_b} assigned to {operand_a}")
+        # ? Takes 2 args: first is register, second is value
+        self.register[operand_a] = operand_b
+        self.pc += 2
+
+    def handle_PRN(self, operand_a, operand_b):
+        # ! print(f"Ran PRN to print {self.register[operand_a]} from Register: {operand_a}")
+        print(self.register[operand_a])
+        self.pc += 1
+
+# * ALU Instructions --------------------------------
+    def handle_ADD(self, operand_a, operand_b):
+        self.alu("ADD", operand_a, operand_b)
+
+    def handle_SUB(self, operand_a, operand_b):
+        self.alu("SUB", operand_a, operand_b)
+
+    def handle_MUL(self, operand_a, operand_b):
+        self.alu("MUL", operand_a, operand_b)
+
+    def handle_DIV(self, operand_a, operand_b):
+        self.alu("DIV", operand_a, operand_b)
+
+    def handle_MOD(self, operand_a, operand_b):
+        self.alu("MOD", operand_a, operand_b)
+
+# * Stack Instructions --------------------------------
+    def handle_PUSH(self, operand_a, operand_b):
+        # ! print("Ran PUSH")
+        # ? Takes 1 args: register address of value to push
+
+        self.register[7] -= 1  # * Move SP down
+        # * Puts value of Rn to memory location of SP
+        self.ram[self.register[7]] = self.register[operand_a]
+
+        self.pc += 1
+
+    def handle_POP(self, operand_a, operand_b):
+        # ! print("Ran POP")
+        # ? Takes 1 args: register address to copy popped value to
+
+        # * Puts value of Rn to memory location of SP
+        self.register[operand_a] = self.ram[self.register[7]]
+        self.register[7] += 1  # * Move SP up
+
+        self.pc += 1
+
+    def handle_CALL(self, operand_a, operand_b):
+        # ! print(f"Ran CALL | PC: {self.pc} | + 2 {self.pc + 2}")
+        self.register[7] -= 1
+        self.ram[self.register[7]] = self.pc + 2
+
+        # ? Set pc to location of function
+        self.pc = self.register[operand_a]
+
+        self.pc -= 1  # * pc - 1 to offset the difference from outside if-tree pc inc
+
+    def handle_RET(self, operand_a, operand_b):
+        # ! print("Ran RET")
+        # ? pops the program counter position from the stack and returns the pc to it
+        self.pc = self.ram[self.register[7]] - 1
+        self.register[7] += 1  # * Move SP up
+
+# * Comparison Instructions --------------------------------
+    def handle_CMP(self, operand_a, operand_b):
+        self.alu("CMP", operand_a, operand_b)
+
+    def handle_JMP(self, operand_a, operand_b):
+        # ? Jumps to given address
+        self.pc = self.register[operand_a] - 1
+
+    def handle_JEQ(self, operand_a, operand_b):
+        # ? Jumps to given address if flag E is true
+        if self.fl == 0b00000001:
+            self.pc = self.register[operand_a] - 1
+        else:
+            self.pc += 1
+
+    def handle_JNE(self, operand_a, operand_b):
+        # ? Jumps to given address if flag E is false
+        if self.fl == 0b00000000:
+            self.pc = self.register[operand_a] - 1
+        else:
+            self.pc += 1
+
+# * Halt the CPU --------------------------------
+    def handle_HLT(self, operand_a, operand_b):
+        self.running = False
+
+
+# * Arithmetic Logic Unit
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -109,7 +221,7 @@ class CPU:
 
         elif op == "MOD":
             self.register[reg_a] %= self.register[reg_b]
-            
+
         elif op == "CMP":
             if self.register[reg_a] == self.register[reg_b]:
                 self.fl = 0b00000001
@@ -118,6 +230,8 @@ class CPU:
 
         else:
             raise Exception("Unsupported ALU operation")
+
+        self.pc += 2
 
     def trace(self):
         """
@@ -152,139 +266,17 @@ class CPU:
         # ? JMP:                    Line 403
         # ? JEQ:                    Line 341
         # ? JNE:                    Line 417
-        
-        # * The register is made up of 8 bits. If a particular bit is set, that flag is "true".
-
-        # * `FL` bits: `00000LGE`
-
-        # * `L` Less-than: during a `CMP`, set to 1 if registerA is less than registerB,
-        # * zero otherwise.
-        # * `G` Greater-than: during a `CMP`, set to 1 if registerA is greater than
-        # * registerB, zero otherwise.
-        # * `E` Equal: during a `CMP`, set to 1 if registerA is equal to registerB, zero
-        # * otherwise.
 
         self.pc = 0                 # * Start program counter at 0
         self.register[7] = 0xf3     # * Set stack pointer to starting address
-        running = True              # * Start running the CPU
+        self.running = True         # * Start running the CPU
 
-        while running:
+        while self.running:
 
             IR = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            if IR == LDI:
-                # ! print(f"Ran LDI: {operand_b} assigned to {operand_a}")
-                # ? Takes 2 args: first is register, second is value
-                self.register[operand_a] = operand_b
-                self.pc += 2
-
-            elif IR == PRN:
-                print_value = self.register[operand_a]
-                print(print_value)
-                self.pc += 1
-
-        # * ALU Mathematic Instructions --------------------------------
-            elif IR == ADD:
-                # ! print("Ran MUL")
-                # ? Takes 2 args: first is register a, second is register aregister b
-                self.alu("ADD", operand_a, operand_b)
-
-                self.pc += 2
-
-            elif IR == SUB:
-                # ! print("Ran MUL")
-                # ? Takes 2 args: first is register a, second is register aregister b
-                self.alu("SUB", operand_a, operand_b)
-
-                self.pc += 2
-
-            elif IR == MUL:
-                # ! print("Ran MUL")
-                # ? Takes 2 args: first is register a, second is register aregister b
-                self.alu("MUL", operand_a, operand_b)
-
-                self.pc += 2
-
-            elif IR == DIV:
-                # ! print("Ran MUL")
-                # ? Takes 2 args: first is register a, second is register aregister b
-                self.alu("DIV", operand_a, operand_b)
-
-                self.pc += 2
-
-            elif IR == MOD:
-                # ! print("Ran MUL")
-                # ? Takes 2 args: first is register a, second is register aregister b
-                self.alu("MOD", operand_a, operand_b)
-
-                self.pc += 2
-
-        # * Stack Instructions --------------------------------
-            elif IR == PUSH:
-                # ! print("Ran PUSH")
-                # ? Takes 1 args: register address of value to push
-
-                self.register[7] -= 1  # * Move SP down
-                # * Puts value of Rn to memory location of SP
-                self.ram[self.register[7]] = self.register[operand_a]
-
-                self.pc += 1
-
-            elif IR == POP:
-                # ! print("Ran POP")
-                # ? Takes 1 args: register address to copy popped value to
-
-                # * Puts value of Rn to memory location of SP
-                self.register[operand_a] = self.ram[self.register[7]]
-                self.register[7] += 1  # * Move SP up
-
-                self.pc += 1
-                
-            elif IR == CALL:
-                # ! print(f"Ran CALL | PC: {self.pc} | + 2 {self.pc + 2}")
-                self.register[7] -= 1
-                self.ram[self.register[7]] = self.pc + 2
-                
-                # ? Set pc to location of function
-                self.pc = self.register[operand_a]
-                
-                self.pc -= 1 # * pc - 1 to offset the difference from outside if-tree pc inc
-                
-                
-            elif IR == RET:
-                # ! print("Ran RET")
-                # ? pops the program counter position from the stack and returns the pc to it
-                self.pc = self.ram[self.register[7]]
-                self.register[7] += 1  # * Move SP up
-                
-        # * Comparison Instructions --------------------------------
-            elif IR == CMP:
-                self.alu("CMP", operand_a, operand_b)
-                self.pc += 2
-            
-            elif IR == JMP:
-                # ? Jumps to given address
-                self.pc = self.register[operand_a] - 1
-                
-            elif IR == JEQ:
-                # ? Jumps to given address if flag E is true
-                if self.fl == 0b00000001:
-                    self.pc = self.register[operand_a] - 1
-                else:
-                    self.pc += 1
-                
-            elif IR == JNE:
-                # ? Jumps to given address if flag E is false
-                if self.fl == 0b00000000:
-                    self.pc = self.register[operand_a] - 1
-                else:
-                    self.pc += 1
-                
-
-        # * Halt the CPU --------------------------------
-            elif IR == HLT:
-                running = False
+            self.irbt[IR](operand_a, operand_b)
 
             self.pc += 1
