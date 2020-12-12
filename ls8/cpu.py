@@ -35,6 +35,12 @@ CALL = 0b01010000
 # * -V- 0 Args
 RET = 0b00010001
 
+# ? Sprint Challenge Operations - Lable After Completion
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
+
 class CPU:
     """Main CPU class."""
 
@@ -44,13 +50,14 @@ class CPU:
         self.ram = [0] * 256        # * 256 bytes of memory
         # * Program Counter: Index in the memory array of currently executing instruction
         self.pc = 0
+        self.fl = 0b00000000
 
     def load(self):
         """Load a program into memory."""
 
         address = 0
 
-        program = "call.ls8"
+        program = sys.argv[1]
 
         for line in open(f"examples/{program}", "r"):
             if not line.startswith("#") and line.strip():
@@ -102,6 +109,12 @@ class CPU:
 
         elif op == "MOD":
             self.register[reg_a] %= self.register[reg_b]
+            
+        elif op == "CMP":
+            if self.register[reg_a] == self.register[reg_b]:
+                self.fl = 0b00000001
+            else:
+                self.fl = 0b00000000
 
         else:
             raise Exception("Unsupported ALU operation")
@@ -134,6 +147,22 @@ class CPU:
         # ? PRN:                    Line 559
         # ? CALL:                   Line 211
         # ? RET:                    Line 590
+        # * Flags:                  Line 25
+        # ? CMP:                    Line 227
+        # ? JMP:                    Line 403
+        # ? JEQ:                    Line 341
+        # ? JNE:                    Line 417
+        
+        # * The register is made up of 8 bits. If a particular bit is set, that flag is "true".
+
+        # * `FL` bits: `00000LGE`
+
+        # * `L` Less-than: during a `CMP`, set to 1 if registerA is less than registerB,
+        # * zero otherwise.
+        # * `G` Greater-than: during a `CMP`, set to 1 if registerA is greater than
+        # * registerB, zero otherwise.
+        # * `E` Equal: during a `CMP`, set to 1 if registerA is equal to registerB, zero
+        # * otherwise.
 
         self.pc = 0                 # * Start program counter at 0
         self.register[7] = 0xf3     # * Set stack pointer to starting address
@@ -229,6 +258,30 @@ class CPU:
                 # ? pops the program counter position from the stack and returns the pc to it
                 self.pc = self.ram[self.register[7]]
                 self.register[7] += 1  # * Move SP up
+                
+        # * Comparison Instructions --------------------------------
+            elif IR == CMP:
+                self.alu("CMP", operand_a, operand_b)
+                self.pc += 2
+            
+            elif IR == JMP:
+                # ? Jumps to given address
+                self.pc = self.register[operand_a] - 1
+                
+            elif IR == JEQ:
+                # ? Jumps to given address if flag E is true
+                if self.fl == 0b00000001:
+                    self.pc = self.register[operand_a] - 1
+                else:
+                    self.pc += 1
+                
+            elif IR == JNE:
+                # ? Jumps to given address if flag E is false
+                if self.fl == 0b00000000:
+                    self.pc = self.register[operand_a] - 1
+                else:
+                    self.pc += 1
+                
 
         # * Halt the CPU --------------------------------
             elif IR == HLT:
